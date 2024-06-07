@@ -1,2 +1,2 @@
 # GrowOVER
-Code for GrowOVER paper accepted in ACL 2024
+The source code for GrowOVER paper accepted in ACL 2024

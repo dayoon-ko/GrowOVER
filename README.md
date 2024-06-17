@@ -10,26 +10,40 @@ The configuration of each line in jsonl file is as follows.
 # QA
 # qa.jsonl
 { wikipedia_article_id: [
-                            # qa instance 1
-                            {
-                             "title": a title of Wikipedia article,
-                             "type": CHANGED / NEW / SAME,
-                             "generated_month": "08" / "09" / "10" / "11" / "12",
-                             "question": a question, 
-                             "answer": an answer for the question,
-                             "grounded_text": an evidence text for the answer,
-                             "start_idx": starting index of grounded_text in the list of article sentences,
-                             "end_idx": ending index of grounded_text in the list of article sentences,
-                            },
-                            # qa instance 2
-                            {"title":,
-                             "type":,
-                             ""
-                            },
-                        ]
+              # qa instance 1
+              {
+               "title": a title of Wikipedia article,
+               "type": CHANGED / NEW / SAME,
+               "generated_month": "08" / "09" / "10" / "11" / "12",
+               "question": a question, 
+               "answer": an answer for the question,
+               "grounded_text": an evidence text for the answer,
+               "start_idx": starting index of grounded_text in the list of article sentences,
+               "end_idx": ending index of grounded_text in the list of article sentences,
+              },
+              # qa instance 2
+              {"title":,
+               "type":,
+               ""
+              },
+          ]
 }
 
 # Dialogue
+# article_dialogue.jsonl
+{ wikipedia_article_id: [
+           IDs of corresponding dialogues
+          ]
+}
+# dialogue.jsonl
+{ dialogue_id: {
+          "article_id": "303",
+          "created_month": 8,
+          "last_modified_month": 9,
+          "dialogue_type": "SAME",
+          "turn": {turn number: turn_id}
+          }
+}
 # turn.jsonl
 { turn_id: 
           {

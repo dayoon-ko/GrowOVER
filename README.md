@@ -3,7 +3,10 @@ The source code for GrowOVER paper accepted in ACL 2024
 
 ## Dataset
 You can download [GrowOVER-QA](https://drive.google.com/uc?export=download&id=1IcpH71gL1_S9BDIthhvjqj8rKE7HCp1R) and [GrowOVER-Dialogue](https://drive.google.com/file/d/1vnGBRDKeD0O9gxGC1ZUvMi7ySgbhQtoq/view?usp=sharing) here. Each zip file includes jsonl file from August to December.
+
 ![Dataset](./image.png)
+
+
 #### Configuration
 The configuration of each line in jsonl file is as follows.
 ```

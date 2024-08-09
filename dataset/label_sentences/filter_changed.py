@@ -15,16 +15,13 @@ def get_args():
     args = parser.parse_args()
     return args
 
-    
-def filter_ctd(filter, js_old):    
-    # filter C
-    res = filter.run_filter(js_old['C'])
-    js_old['C'] = res
-    return js_old
+def filter_ctd(filter, input_old):    
+    # filter changed
+    res = filter.run_filter(input_old['C'])
+    input_old['C'] = res
+    return input_old
 
-
-def main(args):
-    
+def run(run):   
     month_old = args.month_old
     month_new = month_old + 1
     root = args.root + f'/{month_old:02d}{month_new:02d}'
@@ -32,46 +29,46 @@ def main(args):
     sim_model = SimCSE('princeton-nlp/sup-simcse-roberta-large')
     filter = Filter(sim_model)
     
-    results_old, files_old, js_old = init(root, save_root, month_old)
+    # initialize old inputs and results
+    results_old, input_files_old, input_old = init(root, save_root, month_old)
     
-    next_indices = [int(i) for i in js_old]
+    # set starting article id
+    next_indices = [int(i) for i in input_old]
     if len(next_indices) > 0:
         curr_idx = min(next_indices)
     else:
-        with open(files_old[0]) as f:
-            js_old = json.load(f)
+        with open(input_files_old[0]) as f:
+            input_old = json.load(f)
             results_old = {}
-            curr_idx = min([int(i) for i in js_old])
-    
-    print('Start from', files_old[0])
+            curr_idx = min([int(i) for i in input_old])
+    print('Start from', input_files_old[0])
     print('Start index is', curr_idx)
     
+    # iterate over each article (curr_idx) across wiki_*.json files, 
+    # filtering changed sentence pairs 
     while True:
-        
-        if len(js_old[str(curr_idx)]['C']['indices']) > 0:
-            print('\n' + str(curr_idx))
-            result_old = filter_ctd(filter, js_old[str(curr_idx)])
-            save_json(save_root, month_old, files_old, results_old, new=False) 
-            print('------------------')
+        if len(input_old[str(curr_idx)]['C']['indices']) > 0:
+            result_old = filter_ctd(filter, input_old[str(curr_idx)])
+            save_json(save_root, month_old, input_files_old, results_old, new=False) 
         else:
-            result_old = js_old[str(curr_idx)]
+            result_old = input_old[str(curr_idx)]
         results_old[str(curr_idx)] = result_old    
             
-        del js_old[str(curr_idx)]
+        del input_old[str(curr_idx)]
         
         # if old js ended, save and load next old js
-        if len(js_old) == 0:
-            files_old, js_old, max_idx_old = save_and_load_json(save_root, month_old, files_old, results_old) 
+        if len(input_old) == 0:
+            input_files_old, input_old, max_idx_old = save_and_load_json(save_root, month_old, input_files_old, results_old) 
             results_old = {}
             # break, if ended
-            if files_old is None:
+            if input_files_old is None:
                 break
         
         # update curr_idx
-        curr_idx = min([int(i) for i in js_old]) 
+        curr_idx = min([int(i) for i in input_old]) 
 
     
 if __name__ == "__main__":
     args = get_args()
-    main(args)
+    run(args)
     

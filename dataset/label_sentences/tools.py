@@ -142,63 +142,18 @@ class Comparator:
         self.doc2 = Document(t2)
 
     
-    def get_unlabeled_chunks(self):
+    def label_same(self, thrs=0.99):
         '''
-           Returns : chunks (of new article) & matched_chunks (of old article)
-           Chunk : a list of [start_index, end_index + 1]
-           Thus, you can use the chunk for index slicing directly
+        First, match sentence at t_k to sentence at t_k+1
+        Then, match consecutive sentences at t_k to consecutive sentences at t_k+1
         '''
-        left_dic = self.doc2.get_sentences_from_label(0)
-        chunks = []
-        match_chunks = []
+        if len(self.doc1.sentences) == 0 or len(self.doc2.sentences) == 0:
+            return
+        self._label_same_sentences(thrs)
+        self._label_same_paragraphs(thrs)
         
-        for idx, sen in left_dic.items():
-            
-            # find start index of matched chunks
-            if idx == 0:
-                start_idx = 0
-            else:
-                start_idx = self.doc2.match_indices[idx - 1] 
-                # match sentence
-                if type(start_idx) == int:
-                    start_idx = start_idx + 1 if start_idx != -1 else -1
-                # match chunk
-                else:
-                    start_idx = max([i[1] for i in start_idx])
 
-            # break if doc1 ended
-            if start_idx >= len(self.doc1.match_indices):
-                chunks.append([idx, len(self.doc2.match_indices)])
-                match_chunks.append([len(self.doc1.match_indices), len(self.doc1.match_indices)])
-                break
-
-            # if start point, add new chunk
-            if start_idx != -1:
-                chunks.append([idx, idx+1])
-                match_chunks.append([start_idx, -1])
-
-            # find end index of matched chunks
-            end_idx = self.doc2.match_indices[idx+1] \
-                    if idx + 1 < len(self.doc2.match_indices) else len(self.doc2.match_indices) - 1
-
-            # match chunk 
-            if type(end_idx) == list:
-                end_idx = min([i[0] for i in end_idx])
-
-            # if end point, update end indices of the last chunk
-            if end_idx != -1:
-                chunks[-1][-1] = idx + 1
-                match_chunks[-1][-1] = end_idx 
-                
-        
-        # check the last end index of match_chunks
-        if len(match_chunks) > 0 and match_chunks[-1][-1] == -1:
-            match_chunks[-1][-1] = len(self.doc1.match_indices)
-            
-        return chunks, match_chunks
-
-
-    def label_same_sentences(self, thrs=0.99):
+    def _label_same_sentences(self, thrs=0.99):
         '''
         Match sentence in t_k to sentence in t_k+1
         '''
@@ -209,7 +164,7 @@ class Comparator:
         self.doc1.set_same_labels(self.doc2.match_indices)
 
 
-    def label_same_paragraphs(self, thrs=0.99, max_len=5):
+    def _label_same_paragraphs(self, thrs=0.99, max_len=5):
         '''
         For left chunks after label_same_sentence, 
         determine whether there are any consecutive sentences in the chunk are matched
@@ -265,20 +220,7 @@ class Comparator:
                         self.doc2.match_indices[i] = [tuple(indices_old[r])]
                     elif type(self.doc2.match_indices[i]) == list:
                         self.doc2.match_indices[i].append(tuple(indices_old[r]))
-                    
-
-
-    def label_same(self, thrs=0.99):
-        '''
-        First, match sentence at t_k to sentence at t_k+1
-        Then, match consecutive sentences at t_k to consecutive sentences at t_k+1
-        '''
-        if len(self.doc1.sentences) == 0 or len(self.doc2.sentences) == 0:
-            return
-        self.label_same_sentences(thrs)
-        self.label_same_paragraphs(thrs)
-        
-        
+    
     
     def get_label_same_result(self):
         '''
@@ -325,6 +267,61 @@ class Comparator:
         result_new = {'S': s_new, 'NS': ns_new, 'N': n_new}
                 
         return result_old, result_new
+    
+    
+    def get_unlabeled_chunks(self):
+        '''
+           Returns : chunks (of new article) & matched_chunks (of old article)
+           Chunk : a list of [start_index, end_index + 1]
+           Thus, you can use the chunk for index slicing directly
+        '''
+        left_dic = self.doc2.get_sentences_from_label(0)
+        chunks = []
+        match_chunks = []
+        
+        for idx, sen in left_dic.items():
+            
+            # find start index of matched chunks
+            if idx == 0:
+                start_idx = 0
+            else:
+                start_idx = self.doc2.match_indices[idx - 1] 
+                # match sentence
+                if type(start_idx) == int:
+                    start_idx = start_idx + 1 if start_idx != -1 else -1
+                # match chunk
+                else:
+                    start_idx = max([i[1] for i in start_idx])
+
+            # break if doc1 ended
+            if start_idx >= len(self.doc1.match_indices):
+                chunks.append([idx, len(self.doc2.match_indices)])
+                match_chunks.append([len(self.doc1.match_indices), len(self.doc1.match_indices)])
+                break
+
+            # if start point, add new chunk
+            if start_idx != -1:
+                chunks.append([idx, idx+1])
+                match_chunks.append([start_idx, -1])
+
+            # find end index of matched chunks
+            end_idx = self.doc2.match_indices[idx+1] \
+                    if idx + 1 < len(self.doc2.match_indices) else len(self.doc2.match_indices) - 1
+
+            # match chunk 
+            if type(end_idx) == list:
+                end_idx = min([i[0] for i in end_idx])
+
+            # if end point, update end indices of the last chunk
+            if end_idx != -1:
+                chunks[-1][-1] = idx + 1
+                match_chunks[-1][-1] = end_idx 
+                
+        # check the last end index of match_chunks
+        if len(match_chunks) > 0 and match_chunks[-1][-1] == -1:
+            match_chunks[-1][-1] = len(self.doc1.match_indices)
+            
+        return chunks, match_chunks
     
     
 
@@ -548,5 +545,5 @@ if __name__ == "__main__":
     
     comp = Comparator(10, 11, p1, p2)
     comp.label_same_sentences(sim)
-    comp.label_changed_and_new_sentences()
-    comp.label_del_sentences()
+    
+    

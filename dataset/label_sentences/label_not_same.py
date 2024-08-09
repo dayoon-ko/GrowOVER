@@ -31,7 +31,7 @@ def match_article(model, old_text, new_text, thrs = 0.99):
         
 
 def save_json(save_root, month, file_list, results, new=True):
-    '''save results (dict) '''
+    '''save intermediate results'''
     # set dir
     save_dir = f"{save_root}/{month:02d}/{file_list[0].split('/')[-2]}"
     if not os.path.exists(save_dir):
@@ -45,7 +45,7 @@ def save_json(save_root, month, file_list, results, new=True):
 
 
 def save_and_load_json(save_root, month, file_list, results, new=True):    
-    '''save results (dict) to save_root/month/file_list'''
+    '''save intermediate results and load next input'''
     # save json file
     save_json(save_root, month, file_list, results, new=True)
     if new:
@@ -67,7 +67,7 @@ def save_and_load_json(save_root, month, file_list, results, new=True):
 
 def init(root, save_root, month, new=True):
     
-    input_files = [str(i) for i in sorted(Path(root).glob(f'{month:02}/*/wiki_*.json')) if not str(i).endswith('result.json')]
+    input_files = [str(i) for i in sorted(Path(root).glob(f'{month:02}/*/wiki_*.json'))]
     result_files = [str(i) for i in sorted(Path(save_root).glob(f'{month:02}/*/wiki_*.json'))]
 
     # if no saved results, return only input files

@@ -75,6 +75,23 @@ def split_article_into_sentences(text):
         sentences.extend(p)
     return sentences
     
+    
+def list_to_dict(res):
+    '''Change format of the result'''
+    new_s = {}
+    for old_idx, new_idx in zip(res['indices'], res['match_indices']):
+        if type(new_idx) == int:
+            new_s[old_idx] = new_idx
+        elif type(new_idx) == list:
+            # select the list with minimum length
+            min_len, min_idx = new_idx[0][1] - new_idx[0][0], 0
+            for i, (s, e) in enumerate(new_idx):
+                if e-s < min_len:
+                    min_len = e-s
+                    min_idx = i
+            new_s[old_idx] = new_idx[min_idx]
+    return new_s
+
 
 class Document:
     

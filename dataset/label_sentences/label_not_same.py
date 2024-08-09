@@ -84,8 +84,8 @@ def init(root, save_root, month, new=True):
         with open(result_files[-1]) as f:
             result_json = json.load(f)
         if new:
-            for k in result_js:
-                del js[k]
+            for k in result_json:
+                del result_json[k]
         return result_json, input_files, input_json
     
 

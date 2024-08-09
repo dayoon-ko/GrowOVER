@@ -5,12 +5,12 @@ from tools import Filter
 from pathlib import Path
 import argparse
 import os
-from label_NS import save_json, save_and_load_json
+from label_NS import save_json, save_and_load_json, init
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--month_old', type=int, default=8)
-    parser.add_argument('--src_root', type=str, default='label_result_N_C')
+    parser.add_argument('--root', type=str, default='label_result_N_C')
     parser.add_argument('--save_root', type=str, default='filter_result_C')
     args = parser.parse_args()
     return args
@@ -23,39 +23,16 @@ def filter_ctd(filter, js_old):
     return js_old
 
 
-def init(root, save_root, month, new=True):
-    result_files = [str(i) for i in sorted(Path(save_root).glob(f'{month:02}/*/wiki_*.json'))]
-    js_files = [str(i) for i in sorted(Path(root).glob(f'{month:02}/*/wiki_*.json'))]
-  
-    if len(result_files) == 0:
-        with open(js_files[0]) as f:
-            js = json.load(f)
-        return {}, js_files, js
-    
-    else:
-        start_idx = len(result_files) - 1
-        js_files = js_files[start_idx:]
-        with open(js_files[0]) as f:
-            js = json.load(f)
-        with open(result_files[-1]) as f:
-            result_js = json.load(f)
-        if new:
-            for k in result_js:
-                del js[k]
-        return result_js, js_files, js
-
-
-
 def main(args):
     
     month_old = args.month_old
     month_new = month_old + 1
-    src_root = args.src_root + f'/{month_old:02d}{month_new:02d}'
+    root = args.root + f'/{month_old:02d}{month_new:02d}'
     save_root = args.save_root + f'/{month_old:02d}{month_new:02d}'
     sim_model = SimCSE('princeton-nlp/sup-simcse-roberta-large')
     filter = Filter(sim_model)
     
-    results_old, files_old, js_old = init(src_root, save_root, month_old)
+    results_old, files_old, js_old = init(root, save_root, month_old)
     
     next_indices = [int(i) for i in js_old]
     if len(next_indices) > 0:
@@ -93,7 +70,6 @@ def main(args):
         # update curr_idx
         curr_idx = min([int(i) for i in js_old]) 
 
-    
     
 if __name__ == "__main__":
     args = get_args()

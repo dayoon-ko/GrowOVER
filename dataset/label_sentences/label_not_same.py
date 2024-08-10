@@ -1,11 +1,18 @@
 import torch
 import json
 from simcse import SimCSE
-from tools import Comparator
+from tools import (
+    Comparator, 
+    load_json, 
+    match_article, 
+    save_json, 
+    save_and_load_json, 
+    init
+)
 from pathlib import Path
 import argparse
 import os
-        
+
         
 def get_args():
     parser = argparse.ArgumentParser()
@@ -14,79 +21,6 @@ def get_args():
     parser.add_argument('--root', type=str, default = '')
     args = parser.parse_args()
     return args
-
-
-def match_article(model, old_text, new_text, thrs = 0.99):     
-    '''Find same sentences and return results of old_text and new_text'''
-    comp = Comparator(model, old_text, new_text)
-    
-    # return None if no text
-    if len(comp.doc1.sentences) == 0 or len(comp.doc2.sentences) == 0:
-        return None, None
-    
-    # label same senteces & paragraphs and get the results
-    comp.label_same(thrs)
-    result_old, result_new = comp.get_label_same_result()    
-    return result_old, result_new
-        
-
-def save_json(save_root, month, file_list, results, new=True):
-    '''save intermediate results'''
-    # set dir
-    save_dir = f"{save_root}/{month:02d}/{file_list[0].split('/')[-2]}"
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir, exist_ok=True)
-        
-    # save json
-    save_fn = save_dir + "/" + file_list[0].split('/')[-1]
-    with open(save_fn, 'w') as f:
-        json.dump(results, f, indent=2)
-
-
-
-def save_and_load_json(save_root, month, file_list, results, new=True):    
-    '''save intermediate results and load next input'''
-    # save json file
-    save_json(save_root, month, file_list, results, new=True)
-    if new:
-        print('Dump new :', '/'.join(file_list[0].split('/')[-2:]))
-    else:
-        print('Dump old :', '/'.join(file_list[0].split('/')[-2:]))
-    
-    if len(file_list) == 1:
-        return None, None, None
-
-    del file_list[0]
-    with open(file_list[0]) as f:
-        js = json.load(f)
-    max_idx = max([int(i) for i in js])    
-    
-    return file_list, js, max_idx
-    
-    
-
-def init(root, save_root, month, new=True):
-    
-    input_files = [str(i) for i in sorted(Path(root).glob(f'{month:02}/*/wiki_*.json'))]
-    result_files = [str(i) for i in sorted(Path(save_root).glob(f'{month:02}/*/wiki_*.json'))]
-
-    # if no saved results, return only input files
-    if len(result_files) == 0:
-        with open(input_files[0]) as f:
-            input_json = json.load(f)
-        return {}, input_files, input_json
-    # Otherwise, load the last result and start with the corresponding input files 
-    else:
-        start_idx = len(result_files) - 1
-        input_files = input_files[start_idx:]
-        with open(input_files[0]) as f:
-            input_json = json.load(f)
-        with open(result_files[-1]) as f:
-            result_json = json.load(f)
-        if new:
-            for k in result_json:
-                del result_json[k]
-        return result_json, input_files, input_json
     
 
 
@@ -120,12 +54,12 @@ def run(args):
         
         # input_old has no key 
         if str(curr_idx) not in input_old:
-            if len(input_new[str(curr_idx)][2]) > 0:
+            if len(input_new[str(curr_idx)]["text"]) > 0:
                 results_new[str(curr_idx)] = 'N'
         
         # input_old has no text
-        elif len(input_old[str(curr_idx)][2]) == 0:
-            if len(input_new[str(curr_idx)][2]) > 0:
+        elif len(input_old[str(curr_idx)]["text"]) == 0:
+            if len(input_new[str(curr_idx)]["text"]) > 0:
                 results_new[str(curr_idx)] = 'N' 
             else:
                 pass
@@ -133,12 +67,12 @@ def run(args):
         # input_old has text
         else:
             # input_new has no text
-            if len(input_new[str(curr_idx)][2]) == 0:
+            if len(input_new[str(curr_idx)]["text"]) == 0:
                 results_old[str(curr_idx)] = 'D'
             # input_new has text, then compare
             else:
-                article_old = input_old[str(curr_idx)][2]
-                article_new = input_new[str(curr_idx)][2]
+                article_old = input_old[str(curr_idx)]["text"]
+                article_new = input_new[str(curr_idx)]["text"]
                 
                 result_old, result_new = match_article(model, article_old, article_new)
                 if result_old is not None:

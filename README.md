@@ -9,8 +9,8 @@ You can download [GrowOVER-QA](https://drive.google.com/uc?export=download&id=1I
 ## Dataset Generation
 For dataset generation, we first generate initial QA and dialgue. After that, each time new Wikipedia snapshot is available, we perform 1) sentence labeling and 2) temporal updates.     
 In 1) sentence labeling, we compare new Wikipedia snapshot to the previous one and label each sentence into unchanged, changed, and new.   
-Then, in 2) temporal updates, we maintain datapoints if grounded texts are labeled as unchanged, or generate new datapoints if grounded text are labeled as changed or new. 
-You can find source code for dataset generation are in dataset folder.
+Then, in 2) temporal updates, we maintain datapoints if grounded texts are labeled as unchanged, or generate new datapoints if grounded text are labeled as changed or new.   
+You can find source code for dataset generation are in dataset folder. Please refer to readme.md in each folder of the dataset forder. 
 
 ```
 1. Sentence labeling --> dataset/sentence_labeling

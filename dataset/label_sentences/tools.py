@@ -1,12 +1,13 @@
-import torch
-import numpy as np
-import os
-import openai
-from tqdm import tqdm
-from simcse import SimCSE
-from nltk import sent_tokenize
 import re
 import os
+import json
+import torch
+import openai
+from tqdm import tqdm
+import numpy as np
+from pathlib import Path
+from simcse import SimCSE
+from nltk import sent_tokenize
 from fairseq.data.data_utils import collate_tokens
 
 alphabets= "([A-Za-z])"
@@ -70,7 +71,6 @@ def split_article_into_sentences(text):
         if len(p) == 0:
             continue
         if len(p) == 1 and len(p[0]) < 50:
-            print(p[0])
             continue
         sentences.extend(p)
     return sentences
@@ -91,6 +91,87 @@ def list_to_dict(res):
                     min_idx = i
             new_s[old_idx] = new_idx[min_idx]
     return new_s
+
+
+def load_json(file_name):
+    try:
+        return json.load(open(file_name))
+    except:
+        json_file = [json.loads(i) for i in open(file_name).readlines()]
+        json_file = sorted(json_file, key=lambda x: int(x["id"]))
+        json_dict = {}
+        for item in json_file:
+            json_dict[item["id"]] = item
+        return json_dict
+
+
+def match_article(model, old_text, new_text, thrs = 0.99):     
+    '''Find same sentences and return results of old_text and new_text'''
+    comp = Comparator(model, old_text, new_text)
+    
+    # return None if no text
+    if len(comp.doc1.sentences) == 0 or len(comp.doc2.sentences) == 0:
+        return None, None
+    
+    # label same senteces & paragraphs and get the results
+    comp.label_same(thrs)
+    result_old, result_new = comp.get_label_same_result()    
+    return result_old, result_new
+        
+
+def save_json(save_root, month, file_list, results, new=True):
+    '''save intermediate results'''
+    # set dir
+    save_dir = f"{save_root}/{month:02d}/{file_list[0].split('/')[-2]}"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir, exist_ok=True)
+        
+    # save json
+    save_fn = save_dir + "/" + file_list[0].split('/')[-1]
+    with open(save_fn, 'w') as f:
+        json.dump(results, f, indent=2)
+
+
+
+def save_and_load_json(save_root, month, file_list, results, new=True):    
+    '''save intermediate results and load next input'''
+    # save json file
+    save_json(save_root, month, file_list, results, new=True)
+    if new:
+        print('Dump new :', '/'.join(file_list[0].split('/')[-2:]))
+    else:
+        print('Dump old :', '/'.join(file_list[0].split('/')[-2:]))
+    
+    if len(file_list) == 1:
+        return None, None, None
+
+    del file_list[0]
+    
+    js = load_json(file_list[0])
+    max_idx = max([int(i) for i in js])    
+    
+    return file_list, js, max_idx
+    
+    
+def init(root, save_root, month, new=True):
+    
+    input_files = [str(i) for i in sorted(Path(root).glob(f'{month:02}/*/wiki_*'))]
+    result_files = [str(i) for i in sorted(Path(save_root).glob(f'{month:02}/*/wiki_*'))]
+
+    # if no saved results, return only input files
+    if len(result_files) == 0:
+        input_json = load_json(input_files[0])
+        return {}, input_files, input_json
+    # Otherwise, load the last result and start with the corresponding input files 
+    else:
+        start_idx = len(result_files) - 1
+        input_files = input_files[start_idx:]
+        input_json = load_json(input_files[0])
+        result_json = load_json(result_files[-1])
+        if new:
+            for k in result_json:
+                del result_json[k]
+        return result_json, input_files, input_json
 
 
 class Document:
@@ -188,8 +269,7 @@ class Comparator:
         '''
         new, old = self.get_unlabeled_chunks()
         for (os, oe), (ns, ne) in zip(old, new):
-            if os >= oe:
-                #if os > oe: print(os, oe, ns, ne)                    
+            if os >= oe:               
                 continue
             
             # find all consecutive indices for chunks (length < max_len)
@@ -437,22 +517,44 @@ class Classifier:
         
 
     def label_changed_and_new_sentences(self, old, new):
+        # label changed and new
         result_old = {'C': {'indices': [], 'sentences':[]}}
         result_new = {'N': {'indices': [], 'sentences':[]}}
         
-        for ind_old, ind_new, sen_old, sen_new in zip(old['indices'], new['indices'], old['sentences'], new['sentences']):
+        for ind_old, ind_new, sen_old, sen_new in zip(old['NS']['indices'], 
+                                                      new['NS']['indices'], 
+                                                      old['NS']['sentences'], 
+                                                      new['NS']['sentences']):
             if len(ind_old) == 0:
                 continue
-            ctd_res, ctd_sentences, new_res, new_sentences = self._run_labeling(sen_old, sen_new, ind_old[0], ind_new[0])
+            ctd_res, ctd_sentences, new_res, new_sentences = self._run_labeling(sen_old, 
+                                                                                sen_new, 
+                                                                                ind_old[0], 
+                                                                                ind_new[0])
             result_old['C']['indices'].extend(ctd_res)
             result_new['N']['indices'].extend(new_res)
             result_old['C']['sentences'].extend(ctd_sentences)
             result_new['N']['sentences'].extend(new_sentences)
-            print('ctd_indices:', ctd_res)
-            print('new_indices:', new_res)
-            print()
+            
+        # update same
+        if 'S' in old and 'indices' in old['S']:
+            old['S'] = list_to_dict(old['S']) 
 
-        return result_old, result_new
+        # update changed
+        old['C'] = result_old['C']
+
+        # update new
+        if 'N' in new and 'indices' in new['N']:
+            new['N']['indices']= [i for lst in new['N']['indices'] for i in lst]
+            new['N']['indices'].extend(result_new['N']['indices'])
+            new['N']['sentences'].extend(result_new['N']['sentences'])
+        else:
+            new['N'] = result_new['N']
+        
+        # remove unnecessary results
+        del old['NS'], new['S']     
+        
+        return old, new
     
 class Filter:
     

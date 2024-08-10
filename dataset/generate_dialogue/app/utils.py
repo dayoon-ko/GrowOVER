@@ -1,28 +1,26 @@
-# -*- coding: utf-8 -*-
 import re
-import os
-import json
-import torch
 import random
-import numpy as np
+from typing import List, Tuple, Dict, Set
 
-def split_paragraph_and_sentence(article):
-    paragraphs = article.split('\n')
-    sentences = []
-    paragraph_indices = []
-    cur_idx = 0
+dialogue_types = {
+    "same": "SAME",
+    "new": "NEW",
+    "contradict": "CONTRADICT",
+    "deleted": "DELETED",
+    "unlabelled": "UNLABELLED",
+}
 
-    for idx, paragraph in enumerate(paragraphs):
-        sent = split_paragraph_into_sentences(paragraph)
-        ### NOTE : one-sentence paragraphs are not returned
-        if len(sent) > 1:
-            paragraph_indices.append([cur_idx, cur_idx + len(sent)])
-        cur_idx += len(sent)
-        for s in sent:
-            sentences.append(s)
+def get_empty_dialogue(title: str) -> Dict:
+    return {"title": title, "data": []}
 
-    return sentences, paragraph_indices
+def article_id_is_not_consistent(*data_list: Tuple) -> bool:
+    return not all([set(data_list[0].keys()) == set(data.keys()) for data in data_list])
 
+def article_id(data: Dict) -> str:
+    return list(data.keys())[0]
+
+def article_is_empty(article: str) -> bool:
+    return len(article.strip()) == 0
 
 alphabets= "([A-Za-z])"
 prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
@@ -78,34 +76,19 @@ def split_paragraph_into_sentences(text):
 
 
 def split_article_into_sentences(text):
-    
     paragraphs = text.split('\n')
-    sentences = []
+    sentences, paragraph_indices = [], []
+    cur_idx = 0
+    
     for p in paragraphs:
-        p = split_paragraph_into_sentences(p)
-        if len(p) > 1:
-            for s in p:
-                sentences.append(s)
-    return sentences
-    
-
-def seed_everything(seed:int = 42):
-    random.seed(seed)
-    np.random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)  # current gpu seed
-    torch.cuda.manual_seed_all(seed) # All gpu seed
-    torch.backends.cudnn.deterministic = True  # type: ignore
-    torch.backends.cudnn.benchmark = False  # True로 하면 gpu에 적합한 알고리즘을 선택함.
-    
-def load_json(file_name):
-    try:
-        return json.load(open(file_name))
-    except:
-        json_file = [json.loads(i) for i in open(file_name).readlines()]
-        json_file = sorted(json_file, key=lambda x: int(x["id"]))
-        json_dict = {}
-        for item in json_file:
-            json_dict[item["id"]] = item
-        return json_dict
+        sent = split_paragraph_into_sentences(p)
+        if len(sent) == 0:
+            continue
+        if len(sent) == 1 and len(sent[0]) < 50:
+            continue
+        sentences.extend(sent)
+        
+        paragraph_indices.append([cur_idx, cur_idx + len(sent)])
+        cur_idx += len(sent)
+        
+    return sentences, paragraph_indices

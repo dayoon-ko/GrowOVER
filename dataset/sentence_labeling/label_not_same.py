@@ -21,7 +21,6 @@ def get_args():
     parser.add_argument('--root', type=str, default = '')
     args = parser.parse_args()
     return args
-    
 
 
 def run(args):
@@ -99,7 +98,6 @@ def run(args):
         curr_idx = min([int(i) for i in input_new]) 
             
 
-        
 if __name__ == "__main__":
     args = get_args()
     run(args)

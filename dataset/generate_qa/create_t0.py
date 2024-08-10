@@ -10,13 +10,14 @@ import numpy as np
 from simcse import SimCSE
 from tqdm.auto import tqdm
 from pathlib import Path
-from utils import seed_everything
+from utils import seed_everything, load_json
 from qa_manager import generate_qa
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--t0_month", type=int, default=9)
+    parser.add_argument("--t0_month", type=int, default=8)
+    parser.add_argument("--wiki_dump_root", type=str)
     parser.add_argument("--save_root", type=str, default="QA_result")
     parser.add_argument("--n_clusters", type=int, default=10)
 
@@ -33,63 +34,40 @@ def main(args):
     model = SimCSE("princeton-nlp/sup-simcse-roberta-large")
     num_clusters = args.n_clusters
 
-    root = Path(
-        None
-    )
-    files = [
-        str(i)
-        for i in sorted(root.glob(f"{month:02}/AA/wiki_00.json"))
-        if not str(i).endswith("result.json")
-    ]
-    # files = files[:10]
-    # files = files[1]
+    files = [str(i) for i in sorted(Path(args.wiki_dump_root).glob(f"{month:02}/**/wiki*"))]
+    curr_file = load_json(files[0])
 
-    with open(files[0]) as f:
-        js = json.load(f)
-
-    curr_idx = min([int(i) for i in js])
+    curr_idx = min([int(i) for i in curr_file])
     results = {}
 
     while True:
-        if len(js[str(curr_idx)][2]) == 0:
+        if len(curr_file[str(curr_idx)]["text"]) == 0:
             results[str(curr_idx)] = None
-
         else:
-            results[str(curr_idx)] = generate_qa(model, js[str(curr_idx)], num_clusters)
-
-        del js[str(curr_idx)]
+            results[str(curr_idx)] = generate_qa(model, curr_file[str(curr_idx)], num_clusters)
+        del curr_file[str(curr_idx)]
 
         # if js ended, save and load
-        if len(js) == 0:
+        if len(curr_file) == 0:
+            
             save_dir = f"{save_root}/{files[0].split('/')[-2]}"
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir, exist_ok=True)
+                
             save_fn = save_dir + "/" + files[0].split("/")[-1]
             with open(save_fn, "w") as f:
-                json.dump(results, f, indent=3)
+                json.dump(results, f, indent=2)
                 print("Dump :", save_fn)
 
             del files[0]
             if len(files) == 0:
                 break
 
-            with open(files[0]) as f:
-                js = json.load(f)
+            curr_file = load_json(files[0])
             results = {}
 
         # update curr_idx
-        curr_idx = min([int(i) for i in js])
-
-        ## TODO: erase
-        # if curr_idx == 13:
-        #     save_dir = f"{save_root}/{files[0].split('/')[-2]}"
-        #     if not os.path.exists(save_dir):
-        #         os.makedirs(save_dir, exist_ok=True)
-        #     save_fn = save_dir + "/" + files[0].split('/')[-1]
-        #     with open(save_fn, 'w') as f:
-        #         json.dump(results, f, indent=3)
-        #         print('Dump :', save_fn)
-        #     break
+        curr_idx = min([int(i) for i in curr_file])
 
 
 if __name__ == "__main__":

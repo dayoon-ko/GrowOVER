@@ -5,7 +5,7 @@ from tools import Filter
 from pathlib import Path
 import argparse
 import os
-from label_NS import save_json, save_and_load_json, init
+from tools import save_json, save_and_load_json, init
 
 def get_args():
     parser = argparse.ArgumentParser()

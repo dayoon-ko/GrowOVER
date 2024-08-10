@@ -645,8 +645,6 @@ class Filter:
         # sim check
         ctd_idx_res, ctd_sen_res = self._sim_filter(ctd_sen_old, ctd_sen_new)
         ctd_idx_res = [(ctd_idx_old[i], ctd_idx_new[j]) for i, j in ctd_idx_res]
-        print(ctd_idx_res)
-        print(ctd_sen_res)
         return {'indices': ctd_idx_res, 'sentences': ctd_sen_res}
 
     

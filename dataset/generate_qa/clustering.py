@@ -46,7 +46,6 @@ def cluster_sequence(model, num_clusters, sent, indices):
         clustered_items[i].append(item)
 
     selected_items = [random.choice(items) for _, items in clustered_items.items()]
-    # print(selected_items)
     return selected_items
 
 

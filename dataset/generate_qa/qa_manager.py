@@ -97,8 +97,8 @@ def generate_qa(model, wiki, num_clusters):
     Cluster paragraphs and randomly select paragraphs for each cluster.
     """
     out = []
-    title = wiki[1]
-    article = wiki[2]
+    title = wiki["title"]
+    article = wiki["text"]
     sent, indices = split_paragraph_and_sentence(article)
     items = cluster_sequence(model, num_clusters, sent, indices)
 

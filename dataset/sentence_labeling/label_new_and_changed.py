@@ -1,11 +1,10 @@
+import os
 import torch
 import json
+import argparse
 from simcse import SimCSE
 from tools import Classifier
-import argparse
-import os
-from tools import list_to_dict
-from label_not_same import save_json, save_and_load_json, init
+from tools import list_to_dict, save_json, save_and_load_json, init
 
 torch.manual_seed(0)
 print('Set random seed as 0')

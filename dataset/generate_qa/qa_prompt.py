@@ -35,17 +35,11 @@ Paragraph (a list of sentences): {paragraph}\n\n"
         "Be sure to follow the following format and write your answer within curly brackets.\n"
         "The format is as follows:\n{Question}{Answer}{starting sentence index}{ending sentence index}"
     )
-
-    print(paragraph, end="\n\n")
-    # print(initial_content, end="\n\n")
-    # print(content, end="\n\n")
-
     prompt.extend([{"role": "user", "content": content}])
-
+    
     _, response = _run_prompt(prompt)
     res = response["choices"][0]["message"]["content"]
 
-    print(res, end="\n\n")
     return res
 
 
@@ -66,18 +60,11 @@ Sentence(s) : {sentence}\n\n"
         "Be sure to follow the following format and write your answer within curly brackets.\n"
         "The format is as follows:\n{Question}{Answer}"
     )
-
-    # print(sentence, end="\n\n")
-
-    # print(initial_content, end="\n\n")
-    # print(content, end="\n\n")
-
     prompt.extend([{"role": "user", "content": content}])
 
     _, response = _run_prompt(prompt)
     res = response["choices"][0]["message"]["content"]
 
-    # print(res, end="\n\n")
     return res
 
 
@@ -100,16 +87,11 @@ def tn_with_surrounding_prompt(title, sentence, indicator):
 You may refer to the entire Text List for broader context, but ensure the Q&A pairs are directly relevant to the Focus Sentence(s).\n\n\
 Use the following instructions for generating a Q&A pair: \n 1) Provide a question, and an answer. \n 2) DON’T use phrases such as ‘according to the sentence(s)’ in your question. \n 3) An answer should be an entity or entities. \n \
 4) Generate a SINGLE Q&A pair.\n\nBe sure to follow the following format and write your answer within curly brackets.\nThe format is as follows:\n{Question}{Answer}"
-
-    # print(initial_content, end="\n\n")
-    # print(content, end="\n\n")
-
     prompt.extend([{"role": "user", "content": content}])
 
     _, response = _run_prompt(prompt)
     res = response["choices"][0]["message"]["content"]
 
-    # print(res, end="\n\n")
     return res
 
 

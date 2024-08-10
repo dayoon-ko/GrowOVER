@@ -2,12 +2,10 @@ import torch
 import json
 from simcse import SimCSE
 from tools import Classifier
-from pathlib import Path
 import argparse
 import os
 from tools import list_to_dict
 from label_not_same import save_json, save_and_load_json, init
-from fairseq.data.data_utils import collate_tokens
 
 torch.manual_seed(0)
 print('Set random seed as 0')
@@ -20,33 +18,6 @@ def get_args():
     args = parser.parse_args()
     return args
 
-    
-def compare_article(sim_model, clf_model, input_old, input_new):
-    
-    # label changed and new
-    classifier = Classifier(sim_model, clf_model)
-    result_old, result_new = classifier.label_changed_and_new_sentences(input_old['NS'], input_new['NS'])
-    
-    # restore samve
-    if 'S' in input_old and 'indices' in input_old['S']:
-        input_old['S'] = list_to_dict(input_old['S']) 
-
-    # restore changed
-    input_old['C'] = result_old['C']
-
-    # restore new
-    if 'N' in input_new and 'indices' in input_new['N']:
-        input_new['N']['indices']= [i for lst in input_new['N']['indices'] for i in lst]
-        input_new['N']['indices'].extend(result_new['N']['indices'])
-        input_new['N']['sentences'].extend(result_new['N']['sentences'])
-    else:
-        input_new['N'] = result_new['N']
-    
-    del input_old['NS']
-    del input_new['NS'], input_new['S']
-    
-    return input_old, input_new
-
 
 def run(args):
     
@@ -56,6 +27,7 @@ def run(args):
     save_root = args.save_root + f'/{month_old:02d}{month_new:02d}'
     sim_model = SimCSE('princeton-nlp/sup-simcse-roberta-large')
     clf_model = torch.hub.load('pytorch/fairseq', 'roberta.large.mnli').eval()
+    classifier = Classifier(sim_model, clf_model)
     
     results_old, input_files_old, input_old = init(root, save_root, month_old)
     results_new, input_files_new, input_new = init(root, save_root, month_new)
@@ -83,7 +55,10 @@ def run(args):
         
         # otherwise, compare old and new articles
         else:
-            result_old, result_new = compare_article(sim_model, clf_model, input_old[str(curr_idx)], input_new[str(curr_idx)])
+            result_old, result_new = classifier.label_changed_and_new_sentences(
+                                        input_old[str(curr_idx)], 
+                                        input_new[str(curr_idx)]
+                                    )
             results_old[str(curr_idx)] = result_old
             results_new[str(curr_idx)] = result_new
             

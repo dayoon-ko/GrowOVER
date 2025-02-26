@@ -80,4 +80,12 @@ Dialogue
 ## RiLM 
 The RiLM, a retrieval-interactive generation framework, lets LLM evaluate its own answer and the retriever re-retrieve documents if LLM does not predict "reliable". This framework efficiently adapts LLM to the time-sensitive knowledge.   
 In the inference folder, you can find source codes for RiLM. The "inference_qa" folder provides QA inference while "inference_dial" provides dialogue inference.    
-Please run "pipeline.py" for inference as well as re-retrieval.
+Please run "pipeline.py" for inference as well as re-retrieval.   
+
+If you need the vectorstores for reproduction, please use the following links to download them built with several retriever models. 
+
+|Retriever|Download|
+|:---|:---|
+|contriever|link|
+|e5|link|
+|sentbert|link|

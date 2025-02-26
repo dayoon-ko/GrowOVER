@@ -86,6 +86,6 @@ If you need the vectorstores for reproduction, please use the following links to
 
 |Retriever|Download|
 |:---|:---|
-|contriever|link|
-|e5|link|
-|sentbert|link|
+|contriever|[link](https://drive.google.com/file/d/1J1U-ycDz_vbkWYMusbdDNrRNM_Umf-FH/view?usp=drive_link)|
+|e5|[link](https://drive.google.com/file/d/1gce3mLrOI6OPV3oOepiqYMydpiZW-7rw/view?usp=sharing)|
+|sentbert|[link](https://drive.google.com/file/d/1TBsOak4qu7x5aPrOspqmC8vPu7ubQQIs/view?usp=drive_link)|

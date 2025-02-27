@@ -1,4 +1,4 @@
-from transformers import LlamaForCausalLM, LlamaTokenizer, pipeline
+from transformers import LlamaForCausalLM, AutoTokenizer, pipeline
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 from langchain.llms import HuggingFacePipeline
 import torch
@@ -9,7 +9,6 @@ from accelerate import Accelerator
 from typing import Optional, List 
 from transformers import LlamaModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
-from utils import Logger
 import json
 
 
@@ -23,9 +22,9 @@ def get_model(
         accelerator: Accelerator,
         llama_config_dir: str = '/gallery_louvre/dayoon.ko/research/llama2/checkpoints',
         llama_ckpt_path: str = None,
-        train_pred: bool = False,
+        train: bool = False,
         pred_ckpt_path: str = None,
-        logger: Logger = None, 
+        logger = None, 
     ):
     if logger:
         logger.info('Initialize model...')
@@ -38,7 +37,7 @@ def get_model(
     if logger:
         logger.info('Model initialized...')
     model.config.pad_token_id = model.config.eos_token_id
-    tokenizer = LlamaTokenizer.from_pretrained(llama_config_dir)
+    tokenizer = AutoTokenizer.from_pretrained(llama_config_dir)
     tokenizer.pad_token = tokenizer.eos_token
     
     if llama_ckpt_path is not None: 
@@ -48,7 +47,7 @@ def get_model(
         if logger:
             logger.info('Checkpoint loaded...')
     
-    if train_pred:
+    if train:
         model = LlamaForFilter(accelerator, 
                                model, 
                                tokenizer, 
@@ -71,11 +70,11 @@ class LlamaForFilter:
     def __init__(self, 
                  accelerator: Accelerator,
                  model: LlamaForCausalLM,
-                 tokenizer: LlamaTokenizer,
+                 tokenizer: AutoTokenizer,
                  hidden_size: int = 4096,
                  train: bool = True,
                  ckpt_path: str = None,
-                 logger: Logger = None
+                 logger = None
                  ):
         
         self.model = model

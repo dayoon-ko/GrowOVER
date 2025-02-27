@@ -1,36 +1,34 @@
 from model import get_model 
 from dataset import FilterDataset
 from accelerate import Accelerator
-from accelerate import InitProcessGroupKwargs
 from accelerate.utils import gather_object
 from torch.utils.data import DataLoader
+import wandb
 import fire
-import torch.distributed as dist
 from tqdm import tqdm
 import json
 from utils import Logger, print_0
 from datetime import timedelta
 import warnings
 from torch import optim
-import wandb
 import os
 
 warnings.filterwarnings("ignore")
 
-warnings.filterwarnings("ignore")
 import torch 
-torch.manual_seed(42)
 import random
+
+torch.manual_seed(42)
 random.seed(42)
 print('Set random seed!')
             
 def train_filter(
         month: int = 9,
-        llm_config_dir: str = '/gallery_louvre/dayoon.ko/research/llama2/checkpoints',
-        ckpt_path: str = '/gallery_louvre/dayoon.ko/research/kotoba-recipes/checkpoints_08/init/iter_0000003/model.pt',
-        data_path: str = '/gallery_louvre/dayoon.ko/research/kotoba-recipes/inference_qa_ralm/QA_dataset_all/09/retrievalqa.jsonl',
+        llm_config_dir: str = 'meta-llama/Llama-3.1-8B',
+        ckpt_path: str = None,
+        data_path: str = '../QA_dataset/09/retrievalqa.jsonl',
         save_root: str = 'results',
-        batch_size: int = 4,
+        batch_size: int = 16,
         lr: float = 0.00001,
         weight_decay: float = 1e-7,
         num_epochs: int = 100,
@@ -43,15 +41,12 @@ def train_filter(
         eta_min: bool = 1e-8,
     ):
     
-    
     save_ckpt_dir = f'checkpoints/lr_{lr}_wd_{weight_decay}_{eta_min}'
-    while os.path.exists(save_ckpt_dir):
+    if os.path.exists(save_ckpt_dir):
         save_ckpt_dir = save_ckpt_dir + '_'
-    
                 
-    # init
-    ipg_handler = InitProcessGroupKwargs(timeout=timedelta(seconds=5400))
-    accelerator = Accelerator(kwargs_handlers=[ipg_handler], log_with="wandb")
+    # Init Logger
+    accelerator = Accelerator(log_with="wandb")
     logger_fn = f'{save_ckpt_dir}_{str(lr)}'
     logger = Logger(logger_fn)
     logger.info(f'Training: ckpt_path: {ckpt_path}\tsave_root: {save_root}')
@@ -61,7 +56,8 @@ def train_filter(
     logger.info(f'Batch Size: {batch_size}')
     logger.info(f'Save checkpoint: checkpoints/lr_{lr}_wd_{weight_decay}')
     logger.info(f'Train: {num_train} / Val: {num_val} datapoints')
-    # init wandb
+    
+    # Init wandb
     if wandb:
         wandb_name = f'cls_entropy_lr_{lr}_wd_{weight_decay}_{num_train}'
         accelerator.init_trackers(
@@ -75,23 +71,24 @@ def train_filter(
                                "name": wandb_name}}
         )
         logger.info(f'Wandb Name: {wandb_name}')
-    
-    # sync GPUs and start the timer
-    accelerator.wait_for_everyone()
-
-    # get dataset
-    train_dataset = FilterDataset(data_path=data_path, mode='train', num_train_data=num_train, num_val_data=num_val)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=train_dataset.collate_fn)
-    train_dataloader = accelerator.prepare(train_dataloader)
-    
-    val_dataset = FilterDataset(data_path=data_path, mode='val', num_train_data=num_train, num_val_data=num_val)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=val_dataset.collate_fn)
-    val_dataloader = accelerator.prepare(val_dataloader)
-    
-    # make chain class
+        
+    # Load models and create optimizer and scheduler
     tokenizer, model = get_model(accelerator, llm_config_dir, ckpt_path, logger=logger)
     optimizer = optim.AdamW(model.get_params(), lr=lr, weight_decay=weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20, eta_min=eta_min)
+
+    # Get dataset
+    train_dataset = FilterDataset(data_path=data_path, mode='train', num_train_data=num_train, num_val_data=num_val)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=train_dataset.collate_fn)
+    logger.info('Load train loader')
+    
+    val_dataset = FilterDataset(data_path=data_path, mode='val', num_train_data=num_train, num_val_data=num_val)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=val_dataset.collate_fn)
+    logger.info('Load validation loader')
+    
+    model, optimizer, scheduler, train_dataloader, val_dataloader = accelerator.prepare(
+        model, optimizer, scheduler, train_dataloader, val_dataloader
+    )
     
     # train
     prev_val_loss = 100
@@ -133,8 +130,6 @@ def train_filter(
                 save_ckpt_path = f'{save_ckpt_dir}/{epoch}'
                 accelerator.save_model(model.pred_head, save_ckpt_path)
             prev_val_loss = total_val_loss
-    
-    
     
     
     

@@ -104,10 +104,6 @@ def retrieve(
                             collate_fn=dataset.collate_fn
                             )
     dataloader = accelerator.prepare(dataloader)
-    
-    # save path
-    if save:
-        save_pth = f"{save_root}/{month:02d}/retrieval.jsonl"
         
     # execute inference
     results = []
@@ -121,9 +117,10 @@ def retrieve(
     # gather results
     results = gather_object(results)
     results = sorted(results, key=lambda x: int(x[0]))
-    
+        
     # save results
     if save:
+        save_pth = f"{save_root}/{month:02d}/retrieval.jsonl"
         with open(save_pth, 'w') as f:
             for res in results:
                 f.write(json.dumps(res) + "\n")
@@ -193,7 +190,11 @@ def reretrieve(
         qitem['reretrieval'] = output_
         
         results.append([qid, qitem])
-        
+    
+    # gather results
+    results = gather_object(results)
+    results = sorted(results, key=lambda x: int(x[0]))
+    
     # Get the final results  
     if return_results:
         return results

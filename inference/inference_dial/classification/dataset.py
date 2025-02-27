@@ -21,12 +21,12 @@ class FilterDataset(Dataset):
         top_k: int = 3,
         concat: bool = False,
         wo_context: bool = False,
-        query: str = 'retrieval',
+        retrieval_key: str = 'retrieval',
     ):
 
         self.top_k = top_k
         self.mode = mode
-        self.query = query
+        self.retrieval_key = retrieval_key
         self.wo_context = wo_context
         
         # train or val
@@ -147,11 +147,13 @@ class FilterDataset(Dataset):
     def partition_data(self, datas):
         new_data = []
         for tid, turn in datas:
-            retrievals = list(turn[self.query])  
+            retrievals = list(turn[self.retrieval_key])  
             sub_retrievals = retrievals[:self.top_k]
+            if 'document' not in sub_retrievals[0]:
+                sub_retrievals = [i['output'] for i in sub_retrievals]
             for ret in sub_retrievals:
                 turn['context'] = ret['document']
-                turn[self.query] = ret
+                turn[self.retrieval_key] = ret
                 if len(turn['history']) > 0:
                     turn['prompt'] = self.get_hist_prompt(turn)               
                 else :
@@ -163,7 +165,7 @@ class FilterDataset(Dataset):
     def concat_data(self, datas):
         new_data = []
         for tid, turn in datas:
-            retrievals = list(turn[self.query])    
+            retrievals = list(turn[self.retrieval_key])    
             sub_retrievals = retrievals[:self.top_k]
             context = ''
             context = ''

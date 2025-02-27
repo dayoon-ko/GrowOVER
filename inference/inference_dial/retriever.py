@@ -4,6 +4,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from accelerate import Accelerator
 from accelerate.utils import gather_object
+from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
 from string import Template
 import os
@@ -27,7 +28,6 @@ def load_vectorstore(
         embeddings = HuggingFaceEmbeddings(model_name=model_name, 
                                            model_kwargs={'device': 'cuda'},
                                            encode_kwargs={'batch_size': 2048,
-                                                         'show_progress_bar': False,
                                                          'device': 'cuda'
                                                          }
                                            )
@@ -42,14 +42,17 @@ class Retrieval:
     def __init__(
         self,
         db,
+        mode="retrieve",
+        query_key="query",
         search_kwargs=None,
     ):
-        self.is_ralm = True
         self.db = db
+        self.mode = mode
+        self.query_key = query_key
         self.search_kwargs = search_kwargs
         
     def _get_context(self, inputs):
-        docs = self.db.similarity_search_with_score(inputs['query'], **self.search_kwargs)
+        docs = self.db.similarity_search_with_score(inputs[self.query_key], **self.search_kwargs)
         retrieved = []
         context = ''
         gold = inputs['grounded_sentence']
@@ -67,7 +70,10 @@ class Retrieval:
             context = context + doc.page_content + '\n\n' 
         #retreived = sorted(retrieved, sor)
         inputs['context'] = context[:-2]
-        inputs['retrieval'] = retrieved
+        if self.mode == "retrieve":
+            inputs['retrieval'] = retrieved
+        if self.mode == "reretrieve":
+            inputs['reretrieval'] = retrieved
         return inputs
     
     def __call__(self, inputs):
@@ -75,48 +81,30 @@ class Retrieval:
         
          
 def retrieve(
-        accelerator: Accelerator = None,
+        accelerator: Accelerator,
         month: int = 8,
         dataset: RetrievalDataset = None,
-        dataset_dir: str = '/gallery_moma/hahyeon.choi/TemporalBenchmark/dialogues',
         save: bool = True,
-        save_root: str = 'datasets',
-        db_faiss_dir: str = '../inference_qa_ralm/vectorstore/sentbert',
-        chunk: bool = False,
-        chunk_size: int = 1600,
-        start_chunk_idx: int = 0 ,
+        save_root: str = 'Dial_dataset',
+        db_faiss_dir: str = '../inference_qa/vectorstore/sentbert',
         return_results: bool = False,
         top_k: int = 3,
-        model_name: str = None
+        model_name: str = 'sentence-transformers/all-MiniLM-L6-v2'
     ):
-    
     
     # make chain class
     retriever_db = load_vectorstore(month, db_faiss_dir, model_name=model_name)
-    retrieval = Retrieval(retriever_db, search_kwargs={"k":top_k})
+    retrieval = Retrieval(retriever_db, mode="retrieve", search_kwargs={"k":top_k})
     
     if dataset is None and dataset_dir:
-        dataset = RetrievalDataset(month, 
-                                root_dir=dataset_dir,
-                                chunk=chunk,
-                                chunk_size=chunk_size,
-                                start_chunk_idx=start_chunk_idx
-                                ) 
+        dataset = RetrievalDataset(month, root_dir=dataset_dir) 
         
     # get dataset
     dataloader = DataLoader(dataset, 
                             batch_size=1, 
                             collate_fn=dataset.collate_fn
                             )
-    if accelerator is not None:
-        dataloader = accelerator.prepare(dataloader)
-    
-    # path to save
-    db_type = db_faiss_dir.split('/')[-1]
-    if chunk:
-        save_dir = f'{save_root}/{db_type}/{month:02d}/retrievalturn_{start_chunk_idx}.json'
-    else:
-        save_dir = f'{save_root}/{db_type}/{month:02d}/retrievalturn.json'
+    dataloader = accelerator.prepare(dataloader)
         
     # execute inference
     results = []
@@ -125,22 +113,94 @@ def retrieve(
         turn = batch[1]
         output = retrieval(turn) 
         results.append([tid, output])
-        if save:
-            if accelerator is not None:
-                with open(save_dir.replace('.json', f'{torch.distributed.get_rank()}.jsonl'), 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({tid: output}) + '\n')
-            else:
-                with open(save_dir.replace('.json', '.jsonl'), 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({tid: output}) + '\n')
         
     # gather results
-    if accelerator is not None:
-        results = gather_object(results)
+    results = gather_object(results)
     results = sorted(results, key=lambda x: int(x[0]))
     
     # save results
     if save:
-        results = dict(results)
+        save_pth = f"{save_root}/{month:02d}/retrieval.jsonl"
+        with open(save_dir, 'w') as f:
+            json.dump(results, f, indent=2)
+        print(f'Saved in {save_dir}')
+        
+    if return_results:
+        return results
+    
+    
+         
+def reretrieve(
+        accelerator: Accelerator,
+        month: int = 8,
+        dataset: RetrievalDataset = None,
+        save: bool = False,
+        save_root: str = 'Dial_dataset',
+        db_faiss_dir: str = '../inference_qa/vectorstore/sentbert',
+        return_results: bool = False,
+        top_k: int = 3,
+        model_name: str = 'sentence-transformers/all-MiniLM-L6-v2',
+        num_candidates: int = 20,
+        hp_lambda: float = 2.
+    ):
+    
+    # model
+    model = SentenceTransformer(model_name)
+    
+    # make chain class
+    retriever_db = load_vectorstore(month, db_faiss_dir, model_name=model_name)
+    retrieval = Retrieval(retriever_db, mode="reretrieve", search_kwargs={"k":top_k + num_candidates})
+    
+    if dataset is None and dataset_dir:
+        dataset = RetrievalDataset(month, root_dir=dataset_dir) 
+        
+    # get dataset
+    dataloader = DataLoader(dataset, 
+                            batch_size=1, 
+                            collate_fn=dataset.collate_fn
+                            )
+    dataloader = accelerator.prepare(dataloader)
+        
+    # execute inference
+    results = []
+    for tid, titem in tqdm(dataloader, total=len(dataloader)):
+        ts = titem['query']
+        tes = titem['query'] + ' ' + titem['prediction']['text']
+        omega = titem['prediction']['prob'] * hp_lambda
+        reretrieval = retrieval(titem)["reretrieval"][3:]
+        
+        # Encode queries and documents
+        queries = [ts, tes]
+        docs = [r['document'] for r in reretrieval]
+        if 'e5' in model_name:
+            queries = ['query: ' + i for i in queries]
+            docs = ['passage: ' + i for  i in docs]
+        emb_q = model.encode(queries, convert_to_tensor=True)
+        emb_d = model.encode(docs, convert_to_tensor=True)
+        
+        # Get cosine similarity
+        if 'e5' in model_name:
+            sim =(emb_q @ emb_d.transpose(1,0)).tolist()
+        else:
+            sim = util.pytorch_cos_sim(emb_q, emb_d).tolist()
+        
+        # Sort with cosine similarity
+        output_ = []
+        for r, sim_t, sim_te in zip(reretrieval, sim[0], sim[1]):
+            output_.append({'output': r,
+                            'sim': (1 - omega) * sim_t + omega * sim_te})
+        output_ = sorted(output_, key=lambda x: x['sim'], reverse=True)[:3]
+        titem['reretrieval'] = output_
+        
+        results.append([tid, titem])
+        
+    # gather results
+    results = gather_object(results)
+    results = sorted(results, key=lambda x: int(x[0]))
+    
+    # save results
+    if save:
+        save_pth = f"{save_root}/{month:02d}/retrieval.jsonl"
         with open(save_dir, 'w') as f:
             json.dump(results, f, indent=2)
         print(f'Saved in {save_dir}')

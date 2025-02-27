@@ -50,8 +50,6 @@ class FilterDataset(Dataset):
                 self.datas = datas
                 self.labels = output
 
-            print(len(self.datas), len(self.labels))
-
         elif dataset:
             if not concat:
                 self.datas = self.partition_data(dataset)

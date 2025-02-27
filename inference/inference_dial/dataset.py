@@ -10,9 +10,6 @@ class RetrievalDataset(Dataset):
         month: int = 8,
         root_dir: str = '/gallery_moma/hahyeon.choi/TemporalBenchmark/dialogues',
         dataset: Union[list, dict] = None,
-        chunk: bool = False,
-        chunk_size: int = 1600,
-        start_chunk_idx: int = 0
     ):  
         if dataset:
             if type(dataset) == dict:
@@ -23,10 +20,8 @@ class RetrievalDataset(Dataset):
             self.turn_path = f'{root_dir}/{month:02d}/turn.jsonl'
             self.dialogues = self._get_json(self.dialogue_path)
             self.dialogues = sorted(list(self.dialogues.items()), key=lambda x: x[0])
-            if chunk:
-                self.dialogues = self.dialogues[start_chunk_idx * chunk_size : (start_chunk_idx + 1) * chunk_size]
             self.turns = self._get_json(self.turn_path)
-            self.data = self._get_data()
+            self.data = self._get_data()[:8]
             
         
     def __getitem__(self, idx):

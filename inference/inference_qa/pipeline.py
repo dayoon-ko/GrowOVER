@@ -41,7 +41,7 @@ def main(month: int = 9,
                           month,
                           dataset,
                           return_results=True,
-                          save=True,
+                          save=False,
                           db_faiss_dir=db_faiss_dir,
                           model_name=model_name
                           )
@@ -56,7 +56,7 @@ def main(month: int = 9,
     accelerator.wait_for_everyone()
     model.eval()
     
-    dataset = FilterDataset(dataset=retrievals, mode='test', concat=False)
+    dataset = FilterDataset(dataset=retrievals, mode='test')
     dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
     dataloader = accelerator.prepare(dataloader)
     

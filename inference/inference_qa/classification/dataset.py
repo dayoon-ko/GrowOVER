@@ -18,12 +18,12 @@ class FilterDataset(Dataset):
         top_k: int = 3,
         concat: bool = False,
         wo_context: bool = False,
-        query: str = 'retrieval'
+        retrieval_key: str = 'retrieval'
     ):
 
         self.top_k = top_k
         self.mode = mode
-        self.query = query
+        self.retrieval_key = retrieval_key
         self.wo_context = wo_context
         
         # train or val
@@ -111,12 +111,12 @@ class FilterDataset(Dataset):
                 find_hit = 0
                 label = [0., 0., 1.]
             hit_idx = -1
-            retrievals = list(qitem[self.query])
-            del qitem[self.query]
+            retrievals = list(qitem[self.retrieval_key])
+            del qitem[self.retrieval_key]
             for i, ret in enumerate(retrievals[:self.top_k]):
                 if ret['hit'] == find_hit:
                     qitem['context'] = ret['document']
-                    qitem[self.query] = ret
+                    qitem[self.retrieval_key] = ret
                     qitem['prompt'] = self.get_prompt({'question': qitem['question'], 
                                                        'context': qitem['context']})
                     new_data[qtype].append([qid, dict(qitem)])
@@ -137,13 +137,13 @@ class FilterDataset(Dataset):
     def partition_data(self, datas):
         new_data = []
         for qid, qitem in datas:
-            retrievals = list(qitem[self.query])    
+            retrievals = list(qitem[self.retrieval_key])    
             sub_retrievals = retrievals[:self.top_k]
             if 'document' not in sub_retrievals[0]:
                 sub_retrievals = [i['output'] for i in sub_retrievals]
             for ret in sub_retrievals:
                 qitem['context'] = ret['document']
-                qitem[self.query] = ret
+                qitem[self.retrieval_key] = ret
                 qitem['prompt'] = self.get_prompt({'question': qitem['question'], 
                                                    'context': qitem['context']})
                 new_data.append([qid, dict(qitem)])
@@ -153,7 +153,7 @@ class FilterDataset(Dataset):
     def concat_data(self, datas):
         new_data = []
         for qid, qitem in datas:
-            retrievals = list(qitem[self.query])    
+            retrievals = list(qitem[self.retrieval_key])    
             sub_retrievals = retrievals[:self.top_k]
             context = ''
             if not self.wo_context:

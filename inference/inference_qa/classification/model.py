@@ -1,4 +1,4 @@
-from transformers import LlamaForCausalLM, LlamaTokenizer, pipeline
+from transformers import LlamaForCausalLM, AutoTokenizer, pipeline
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 from langchain.llms import HuggingFacePipeline
 import torch
@@ -10,7 +10,6 @@ from typing import Optional, List
 from transformers import LlamaModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from string import Template
-from utils import Logger
 import json
 
 
@@ -26,7 +25,7 @@ def get_model(
         llama_ckpt_path: str = None,
         train: bool = False,
         pred_ckpt_path: str = None,
-        logger: Logger = None, 
+        logger = None, 
     ):
     if logger:
         logger.info('Initialize model...')
@@ -39,7 +38,7 @@ def get_model(
     if logger:
         logger.info('Model initialized...')
     model.config.pad_token_id = model.config.eos_token_id
-    tokenizer = LlamaTokenizer.from_pretrained(llama_config_dir)
+    tokenizer = AutoTokenizer.from_pretrained(llama_config_dir)
     tokenizer.pad_token = tokenizer.eos_token
     
     if llama_ckpt_path is not None: 
@@ -65,11 +64,11 @@ class LlamaForFilter:
     def __init__(self, 
                  accelerator: Accelerator,
                  model: LlamaForCausalLM,
-                 tokenizer: LlamaTokenizer,
+                 tokenizer: AutoTokenizer,
                  hidden_size: int = 4096,
                  train: bool = True,
-                 ckpt_path: str = None,
-                 logger: Logger = None
+                 pred_ckpt_path: str = None,
+                 logger = None
                  ):
         
         self.model = model
@@ -89,8 +88,8 @@ class LlamaForFilter:
         pred_head.cuda()
         self.pred_head = accelerator.prepare(pred_head)
         
-        if ckpt_path:
-            model = accelerator.load_state(ckpt_path)
+        if pred_ckpt_path:
+            model = accelerator.load_state(pred_ckpt_path)
         
         self.loss_fct = CrossEntropyLoss()
     

@@ -22,7 +22,7 @@ def store_data(
     data_dir = f"{data_dir}/{month:02d}"
     
     # Document
-    loader = DirectoryLoader(data_dir, glob=glob_dir, show_progress=True, loader_cls=JSONLoader, loader_kwargs={'jq_schema':'.text', 'json_lines':True})
+    loader = DirectoryLoader(data_dir, glob=glob_dir, loader_cls=JSONLoader, loader_kwargs={'jq_schema':'.text', 'json_lines':True})
     documents = loader.load()
     print(f'Document count: {len(documents)}')
     
@@ -33,7 +33,6 @@ def store_data(
                                         #multi_process=False,
                                         model_kwargs={'device': 'cuda'},
                                         encode_kwargs={'batch_size': batch_size,
-                                                        'show_progress_bar': True,
                                                         'device': 'cuda'
                                                         }
                                         )    
@@ -57,7 +56,6 @@ def load_vectorstore(
         embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2', 
                                            model_kwargs={'device': 'cuda'},
                                            encode_kwargs={'batch_size': 2048,
-                                                         'show_progress_bar': False,
                                                          'device': 'cuda'
                                                          }
                                            )
@@ -82,7 +80,6 @@ def merge_vectorstore(
     embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2', 
                                            model_kwargs={'device': 'cuda'},
                                            encode_kwargs={'batch_size': 2048,
-                                                         'show_progress_bar': False,
                                                          'device': 'cuda'
                                                          }
                                          )

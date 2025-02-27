@@ -82,10 +82,17 @@ The RiLM, a retrieval-interactive generation framework, lets LLM evaluate its ow
 In the inference folder, you can find source codes for RiLM. The "inference_qa" folder provides QA inference while "inference_dial" provides dialogue inference.    
 Please run "pipeline.py" for inference as well as re-retrieval.   
 
-If you need the vectorstores for reproduction, please use the following links to download them built with several retriever models. 
+If you need the vectorstores and training datasets for reproduction, please use the following links to download them. 
 
 |Retriever|Download|
 |:---|:---|
 |contriever|[link](https://drive.google.com/file/d/1J1U-ycDz_vbkWYMusbdDNrRNM_Umf-FH/view?usp=drive_link)|
 |e5|[link](https://drive.google.com/file/d/1gce3mLrOI6OPV3oOepiqYMydpiZW-7rw/view?usp=sharing)|
 |sentbert|[link](https://drive.google.com/file/d/1TBsOak4qu7x5aPrOspqmC8vPu7ubQQIs/view?usp=drive_link)|
+
+
+|Dataset|Download|
+|:---|:---|
+|QA train|[link](https://drive.google.com/file/d/1J1U-ycDz_vbkWYMusbdDNrRNM_Umf-FH/view?usp=drive_link)|
+|Dialouge train|[link](https://drive.google.com/file/d/1cna0Jy00rBFOBkUtGaSa7584IAm9VjF7/view?usp=sharing)|
+

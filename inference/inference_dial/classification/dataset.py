@@ -13,7 +13,6 @@ class FilterDataset(Dataset):
     def __init__(
         self,
         month: int = 9,
-        dataset: dict = None,
         data_path: str = '../datasets/09/vectorstore/retrievalturn.jsonl',
         num_train_data: int = 512,
         num_val_data: int = 128,
@@ -48,8 +47,6 @@ class FilterDataset(Dataset):
                 datas, output = self.select_data(datas[112500:])
                 self.datas = datas
                 self.labels = output
-
-            print(len(self.datas), len(self.labels))
 
         elif dataset:
             if not concat:
@@ -126,15 +123,10 @@ class FilterDataset(Dataset):
                     new_label[qtype].append(label) # enough
                     hit_idx = i
                     break
-        print('CONTRADICT:', len(new_data['CONTRADICT']))
-        print('NEW:', len(new_data['NEW']))
-        print('SAME:', len(new_data['SAME']))
+        # print('CONTRADICT:', len(new_data['CONTRADICT']))
+        # print('NEW:', len(new_data['NEW']))
+        # print('SAME:', len(new_data['SAME']))
         new_data = [i for m in new_data.values() for i in m]
-        new_data = dict(new_data)
-        if self.mode == 'train':
-            with open('train.json', 'w') as f:
-                json.dump(new_data, f, indent=2)
-            exit()
         new_label = [i for m in new_label.values() for i in m]
         indices = list(range(len(new_data)))
         random.shuffle(indices)

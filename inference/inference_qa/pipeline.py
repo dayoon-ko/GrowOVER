@@ -12,9 +12,9 @@ from tqdm import tqdm
 
 def main(month: int = 9,
          data_root: str = 'QA_dataset',
-         llama_config_dir: str = 'meta-llama/Llama-2-7B',
+         llama_config_dir: str = 'meta-llama/Llama-3.1-8B',
          llama_ckpt_path: str = None,
-         pred_ckpt_path: str = 'classification/ckpt',
+         pred_ckpt_path: str = 'classification/ckpt/llama-3.1-8B',
          batch_size: int = 8,
          save_root: str = 'results',
          db_faiss_dir: str = 'vectorstore/sentbert',

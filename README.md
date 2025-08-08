@@ -96,3 +96,21 @@ If you need the vectorstores and training datasets for reproduction, please use 
 |QA train|[link](https://drive.google.com/file/d/1J1U-ycDz_vbkWYMusbdDNrRNM_Umf-FH/view?usp=drive_link)|
 |Dialouge train|[link](https://drive.google.com/file/d/1cna0Jy00rBFOBkUtGaSa7584IAm9VjF7/view?usp=sharing)|
 
+
+
+#### Citation
+```bib
+@inproceedings{ko-etal-2024-growover,
+    title = "{G}row{OVER}: How Can {LLM}s Adapt to Growing Real-World Knowledge?",
+    author = "Ko, Dayoon  and
+      Kim, Jinyoung  and
+      Choi, Hahyeon  and
+      Kim, Gunhee",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    year = "2024",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.181/",
+    doi = "10.18653/v1/2024.acl-long.181",
+    pages = "3282--3308",
+}
+```

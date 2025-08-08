@@ -1,4 +1,4 @@
-# GrowOVER
+# GrowOVER: How Can LLMs Adapt to Growing Real-World Knowledge?
 The source code for [GrowOVER paper](https://aclanthology.org/2024.acl-long.181.pdf) accepted in [ACL 2024](https://aclanthology.org/2024.acl-long.181/)
 
 ## Dataset

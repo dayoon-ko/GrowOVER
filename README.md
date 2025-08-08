@@ -1,5 +1,5 @@
 # GrowOVER
-The source code for [GrowOVER paper](https://arxiv.org/abs/2406.05606) accepted in ACL 2024
+The source code for [GrowOVER paper]([https://aclanthology.org/2024.acl-long.181.pdf]) accepted in [ACL 2024]([https://aclanthology.org/2024.acl-long.181/])
 
 ## Dataset
 You can download [GrowOVER-QA](https://drive.google.com/uc?export=download&id=1IcpH71gL1_S9BDIthhvjqj8rKE7HCp1R) and [GrowOVER-Dialogue](https://drive.google.com/file/d/1vnGBRDKeD0O9gxGC1ZUvMi7ySgbhQtoq/view?usp=sharing) here. Each zip file includes jsonl file from August to December.
